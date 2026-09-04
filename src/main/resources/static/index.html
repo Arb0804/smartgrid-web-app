@@ -147,18 +147,19 @@
                 `;
             }).join('');
 
-            document.getElementById('totalCapacity').innerText = `${capacitySum} kW`;
-            
-            // Set initial baseline load if not optimizing
+            // Display total capacity formatted to 2 decimals
+            document.getElementById('totalCapacity').innerText = `${capacitySum.toFixed(2)} kW`;
+
+            // Format baseline loads
             if (initialTotalLoad === 0 || currentLoadSum > initialTotalLoad) {
+                document.getElementById('beforeLoad').innerText = `${initialTotalLoad.toFixed(2)} kW`;
                 initialTotalLoad = currentLoadSum;
-                document.getElementById('beforeLoad').innerText = `${initialTotalLoad} kW`;
             }
 
-            document.getElementById('afterLoad').innerText = `${currentLoadSum} kW`;
-            
+            document.getElementById('afterLoad').innerText = `${currentLoadSum.toFixed(2)} kW`;
+
             const shed = initialTotalLoad - currentLoadSum;
-            document.getElementById('sheddedLoad').innerText = `${shed > 0 ? shed : 0} kW`;
+            document.getElementById('sheddedLoad').innerText = `${(shed > 0 ? shed : 0).toFixed(2)} kW`;
         }
 
         document.getElementById('zoneForm').addEventListener('submit', async (e) => {
