@@ -41,7 +41,8 @@
         .progress-fill { height: 100%; transition: width 0.4s ease; }
 
         /* Render-Style Console Terminal */
-        .terminal-container {
+        .terminal-container 
+        {
             background-color: #0d1117;
             border: 1px solid #30363d;
             border-radius: 6px;
@@ -51,27 +52,71 @@
             overflow-y: auto;
             padding: 6px 0;
         }
-        .log-row {
+        .log-row 
+        {
             padding: 4px 12px;
             white-space: pre-wrap;
             border-left: 3px solid transparent;
             line-height: 1.4;
         }
         .log-info { color: #8b949e; }
-        .log-warning {
+        .log-warning 
+        {
             background-color: rgba(210, 153, 34, 0.15);
             color: #f2cc60;
             border-left-color: #d29922;
         }
-        .log-alert {
+        .log-alert 
+        {
             background-color: rgba(248, 81, 73, 0.18);
             color: #ff7b72;
             border-left-color: #f85149;
             font-weight: bold;
         }
+
+        /*Toast Notification Container Styles */
+        #toast-container 
+        {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast 
+        {
+            padding: 12px 18px;
+            border-radius: 6px;
+            color: #fff;
+            font-weight: bold;
+            font-size: 13px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            animation: slideIn 0.3s ease, fadeOut 0.5s ease 4s forwards;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .toast-warning { background-color: #d29922; color: #1a202c; }
+        .toast-alert { background-color: #f85149; }
+
+        @keyframes slideIn 
+        {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes fadeOut 
+        {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
     </style>
 </head>
 <body>
+
+    <!--Toast Notification Host Container -->
+    <div id="toast-container"></div>
 
     <h1>⚡ SmartGrid Load Shedding Optimizer</h1>
 
@@ -171,6 +216,20 @@
     <script>
         const API_URL = '/api/grid';
         let initialTotalLoad = 0;
+
+        // Toast Notification Generator Function
+        function showToast(message, type = 'warning') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = type === 'alert' ? `🚫 ${message}` : `⚠️ ${message}`;
+            
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 4500);
+        }
 
         function toggleTypeFields() {
             const type = document.getElementById('type').value;
@@ -287,6 +346,7 @@
             fetchLogs();
         });
 
+        // Trigger Toast Banner During Optimization
         async function runOptimize() {
             await fetch(`${API_URL}/optimize`, { method: 'POST' });
             await fetchZones();
@@ -300,9 +360,13 @@
             const formattedAfter = after.toFixed(2);
             const formattedShed = (shed > 0 ? shed : 0).toFixed(2);
 
-            document.getElementById('summaryText').innerHTML = shed > 0 
-                ? `<strong>Optimization Result:</strong> Total grid load dropped from <span class="text-red">${formattedBefore} kW</span> to <span class="text-green">${formattedAfter} kW</span>, shedding <span class="text-red">${formattedShed} kW</span> to preserve critical stability.`
-                : `<strong>Optimization Result:</strong> Current demand (${formattedAfter} kW) is within safe grid capacity limits. No load shedding required.`;
+            if (shed > 0) {
+                showToast(`Load Shedding Executed: ${formattedShed} kW shed to maintain grid stability!`, 'alert');
+                document.getElementById('summaryText').innerHTML = `<strong>Optimization Result:</strong> Total grid load dropped from <span class="text-red">${formattedBefore} kW</span> to <span class="text-green">${formattedAfter} kW</span>, shedding <span class="text-red">${formattedShed} kW</span> to preserve critical stability.`;
+            } else {
+                showToast('Current demand is within safe grid capacity limits. No load shedding required.', 'warning');
+                document.getElementById('summaryText').innerHTML = `<strong>Optimization Result:</strong> Current demand (${formattedAfter} kW) is within safe grid capacity limits. No load shedding required.`;
+            }
         }
 
         async function resetGrid() {
@@ -313,6 +377,7 @@
             document.getElementById('sheddedLoad').innerText = '0.00 kW';
             document.getElementById('totalCapacity').innerText = '0.00 kW';
             document.getElementById('summaryText').innerText = 'Grid reset successful. Add new zones to begin.';
+            showToast('Grid state reset. All sectors cleared.', 'warning');
             fetchZones();
             fetchLogs();
         }
