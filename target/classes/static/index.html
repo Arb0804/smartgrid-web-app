@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartGrid Load Shedding Optimizer</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f7f6; color: #333; }
+        h1 { color: #1a365d; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, select, button { padding: 8px 12px; font-size: 14px; border-radius: 4px; border: 1px solid #ccc; }
+        button { background-color: #2b6cb0; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #2c5282; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #edf2f7; }
+    </style>
+</head>
+<body>
+
+    <h1>⚡ SmartGrid Load Shedding Optimizer</h1>
+
+    <div class="card">
+        <h2>Add Grid Zone</h2>
+        <form id="zoneForm">
+            <div class="form-group">
+                <label for="name">Zone Name:</label>
+                <input type="text" id="name" required>
+            </div>
+            <div class="form-group">
+                <label for="demand">Power Demand (MW):</label>
+                <input type="number" id="demand" step="0.1" required>
+            </div>
+            <div class="form-group">
+                <label for="priority">Priority Level (1-5):</label>
+                <input type="number" id="priority" min="1" max="5" required>
+            </div>
+            <div class="form-group">
+                <label for="type">Zone Type:</label>
+                <select id="type">
+                    <option value="Residential">Residential</option>
+                    <option value="Industrial">Industrial</option>
+                    <option value="CriticalInfrastructure">Critical Infrastructure</option>
+                </select>
+            </div>
+            <button type="submit">Add Zone</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Active Grid Sectors</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Demand (MW)</th>
+                    <th>Priority</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="zonesTable">
+                <!-- Data populated dynamically -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        const API_URL = '/api/grid';
+
+        async function fetchZones() {
+            const res = await fetch(`${API_URL}/zones`);
+            const zones = await res.json();
+            const tbody = document.getElementById('zonesTable');
+            tbody.innerHTML = zones.map(z => `
+                <tr>
+                    <td>${z.name || z.zoneName}</td>
+                    <td>${z.powerDemand || z.demand}</td>
+                    <td>${z.priorityLevel || z.priority}</td>
+                    <td>${z.type || z.zoneType || 'Standard'}</td>
+                    <td>${z.isShed ? '🔴 Shed' : '🟢 Active'}</td>
+                </tr>
+            `).join('');
+        }
+
+        document.getElementById('zoneForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const zone = {
+                name: document.getElementById('name').value,
+                powerDemand: parseFloat(document.getElementById('demand').value),
+                priorityLevel: parseInt(document.getElementById('priority').value),
+                zoneType: document.getElementById('type').value
+            };
+
+            await fetch(`${API_URL}/zones`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(zone)
+            });
+
+            document.getElementById('zoneForm').reset();
+            fetchZones();
+        });
+
+        fetchZones();
+    </script>
+</body>
+</html>
