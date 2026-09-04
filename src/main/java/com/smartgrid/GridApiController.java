@@ -15,42 +15,55 @@ import java.util.ArrayList;
 @RestController
 @RequestMapping("/api/grid")
 @CrossOrigin(origins = "*") // Allows web browser calls from local/hosted frontends
-public class GridApiController {
+public class GridApiController 
+{
 
     private final GridController gridController = new GridController();
 
     @GetMapping("/zones")
-    public ArrayList<ElectricalGridZone> getZones() {
+    public ArrayList<ElectricalGridZone> getZones() 
+    {
         return gridController.getManagedZones();
     }
 
     @PostMapping("/add-residential")
-    public ArrayList<ElectricalGridZone> addResidential(@RequestParam String name, @RequestParam double load, @RequestParam double capacity, @RequestParam int thermostats) {
+    public ArrayList<ElectricalGridZone> addResidential(@RequestParam String name, @RequestParam double load, @RequestParam double capacity, @RequestParam int thermostats) 
+    {
         gridController.addZone(new ResidentialZone(name, load, capacity, thermostats));
         return gridController.getManagedZones();
     }
 
     @PostMapping("/add-industrial")
-    public ArrayList<ElectricalGridZone> addIndustrial(@RequestParam String name, @RequestParam double load, @RequestParam double capacity, @RequestParam int shifts) {
+    public ArrayList<ElectricalGridZone> addIndustrial(@RequestParam String name, @RequestParam double load, @RequestParam double capacity, @RequestParam int shifts) 
+    {
         gridController.addZone(new IndustrialZone(name, load, capacity, shifts));
         return gridController.getManagedZones();
     }
 
     @PostMapping("/add-critical")
-    public ArrayList<ElectricalGridZone> addCritical(@RequestParam String name, @RequestParam double load, @RequestParam double capacity, @RequestParam int generators) {
+    public ArrayList<ElectricalGridZone> addCritical(@RequestParam String name, @RequestParam double load, @RequestParam double capacity, @RequestParam int generators) 
+    {
         gridController.addZone(new CriticalInfrastructureZone(name, load, capacity, generators));
         return gridController.getManagedZones();
     }
 
     @PostMapping("/optimize")
-    public ArrayList<ElectricalGridZone> optimizeGrid() {
+    public ArrayList<ElectricalGridZone> optimizeGrid() 
+    {
         gridController.loadShedding();
         return gridController.getManagedZones();
     }
 
     @PostMapping("/reset")
-    public ArrayList<ElectricalGridZone> resetGrid() {
+    public ArrayList<ElectricalGridZone> resetGrid() 
+    {
         gridController.clearZones();
         return gridController.getManagedZones();
+    }
+
+    @GetMapping("/")
+    public String home() 
+    {
+    return "forward:/index.html";
     }
 }
