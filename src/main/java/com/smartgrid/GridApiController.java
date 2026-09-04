@@ -11,6 +11,7 @@ package com.smartgrid;
 
 import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/grid")
@@ -26,10 +27,17 @@ public class GridApiController
         return gridController.getManagedZones();
     }
 
+    @GetMapping("/logs")
+    public List<String> getLogs() 
+    {
+        return AppLogger.getLogs();
+    }
+
     @PostMapping("/add-residential")
     public ArrayList<ElectricalGridZone> addResidential(@RequestParam String name, @RequestParam double load, @RequestParam double capacity, @RequestParam int thermostats) 
     {
         gridController.addZone(new ResidentialZone(name, load, capacity, thermostats));
+        AppLogger.info("Added Residential Zone: " + name + " [Load: " + load + " kW, Max: " + capacity + " kW, Thermostats: " + thermostats + "]");
         return gridController.getManagedZones();
     }
 
@@ -37,6 +45,7 @@ public class GridApiController
     public ArrayList<ElectricalGridZone> addIndustrial(@RequestParam String name, @RequestParam double load, @RequestParam double capacity, @RequestParam int shifts) 
     {
         gridController.addZone(new IndustrialZone(name, load, capacity, shifts));
+        AppLogger.info("Added Industrial Zone: " + name + " [Load: " + load + " kW, Max: " + capacity + " kW, Shifts: " + shifts + "]");
         return gridController.getManagedZones();
     }
 
@@ -44,13 +53,16 @@ public class GridApiController
     public ArrayList<ElectricalGridZone> addCritical(@RequestParam String name, @RequestParam double load, @RequestParam double capacity, @RequestParam int generators) 
     {
         gridController.addZone(new CriticalInfrastructureZone(name, load, capacity, generators));
+        AppLogger.info("Added Critical Infrastructure Zone: " + name + " [Load: " + load + " kW, Max: " + capacity + " kW, Generators: " + generators + "]");
         return gridController.getManagedZones();
     }
 
     @PostMapping("/optimize")
     public ArrayList<ElectricalGridZone> optimizeGrid() 
     {
+        AppLogger.warn("Optimization initiated: Evaluating grid load thresholds and stability parameters.");
         gridController.loadShedding();
+        AppLogger.info("Load shedding optimization algorithm executed successfully.");
         return gridController.getManagedZones();
     }
 
@@ -58,12 +70,14 @@ public class GridApiController
     public ArrayList<ElectricalGridZone> resetGrid() 
     {
         gridController.clearZones();
+        AppLogger.clear();
+        AppLogger.info("Grid state reset. All active sectors cleared.");
         return gridController.getManagedZones();
     }
 
     @GetMapping("/")
     public String home() 
     {
-    return "forward:/index.html";
+        return "forward:/index.html";
     }
 }
