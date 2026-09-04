@@ -5,124 +5,208 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SmartGrid Load Shedding Optimizer</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 30px; background-color: #f4f7f6; color: #333; }
-        h1 { color: #1a365d; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 30px; background-color: #121212; color: #e0e0e0; }
+        h1 { color: #63b3ed; }
+        .card { background: #1e1e1e; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); margin-bottom: 20px; border: 1px solid #333; }
         .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input, select, button { padding: 8px 12px; font-size: 14px; border-radius: 4px; border: 1px solid #ccc; }
-        button { background-color: #2b6cb0; color: white; border: none; cursor: pointer; }
-        button:hover { background-color: #2c5282; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #a0aec0; }
+        input, select, button { padding: 10px; font-size: 14px; border-radius: 4px; border: 1px solid #4a5568; background-color: #2d3748; color: #fff; width: 100%; box-sizing: border-box; }
+        button { cursor: pointer; font-weight: bold; margin-top: 5px; }
+        .btn-add { background-color: #3182ce; border: none; }
+        .btn-add:hover { background-color: #2b6cb0; }
+        .btn-opt { background-color: #d69e2e; border: none; color: #1a202c; }
+        .btn-opt:hover { background-color: #b7791f; }
+        .btn-reset { background-color: #e53e3e; border: none; }
+        .btn-reset:hover { background-color: #c53030; }
+        
+        .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .metric-box { background: #2d3748; padding: 15px; border-radius: 6px; text-align: center; }
+        .metric-title { font-size: 12px; text-transform: uppercase; color: #a0aec0; margin-bottom: 5px; }
+        .metric-value { font-size: 24px; font-weight: bold; }
+        .text-green { color: #48bb78; }
+        .text-red { color: #f56565; }
+        
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { background-color: #edf2f7; }
+        th, td { border: 1px solid #4a5568; padding: 10px; text-align: left; }
+        th { background-color: #2d3748; color: #e2e8f0; }
     </style>
 </head>
 <body>
 
     <h1>⚡ SmartGrid Load Shedding Optimizer</h1>
 
-    <div class="card">
-    <h2>Add Grid Zone</h2>
-    <form id="zoneForm">
-        <div class="form-group">
-            <label for="name">Zone Name:</label>
-            <input type="text" id="name" required>
+    <div class="grid-layout">
+        <!-- Control Panel -->
+        <div class="card">
+            <h2>Add Grid Zone</h2>
+            <form id="zoneForm">
+                <div class="form-group">
+                    <label for="name">Zone Name:</label>
+                    <input type="text" id="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="load">Current Load (kW):</label>
+                    <input type="number" id="load" step="0.1" required>
+                </div>
+                <div class="form-group">
+                    <label for="capacity">Max Capacity (kW):</label>
+                    <input type="number" id="capacity" step="0.1" required>
+                </div>
+                <div class="form-group">
+                    <label for="type">Zone Type:</label>
+                    <select id="type" onchange="toggleTypeFields()">
+                        <option value="residential">Residential</option>
+                        <option value="industrial">Industrial</option>
+                        <option value="critical">Critical Infrastructure</option>
+                    </select>
+                </div>
+                <div class="form-group" id="extraGroup">
+                    <label id="extraLabel" for="extraParam">Smart Thermostats Count:</label>
+                    <input type="number" id="extraParam" required>
+                </div>
+                <button type="submit" class="btn-add">Add Zone</button>
+            </form>
+            <div style="margin-top: 15px; display: flex; gap: 10px;">
+                <button onclick="runOptimize()" class="btn-opt">Run Load Shedding</button>
+                <button onclick="resetGrid()" class="btn-reset">Reset Grid</button>
+            </div>
         </div>
-        <div class="form-group">
-            <label for="load">Current Load (kW):</label>
-            <input type="number" id="load" step="0.1" required>
+
+        <!-- Before & After Optimization Metrics -->
+        <div class="card">
+            <h2>Optimization Impact Summary</h2>
+            <div class="grid-layout" style="margin-bottom: 15px;">
+                <div class="metric-box">
+                    <div class="metric-title">Total Pre-Shed Load</div>
+                    <div id="beforeLoad" class="metric-value text-red">0 kW</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-title">Active Post-Shed Load</div>
+                    <div id="afterLoad" class="metric-value text-green">0 kW</div>
+                </div>
+            </div>
+            <div class="grid-layout">
+                <div class="metric-box">
+                    <div class="metric-title">Total Grid Capacity</div>
+                    <div id="totalCapacity" class="metric-value">0 kW</div>
+                </div>
+                <div class="metric-box">
+                    <div class="metric-title">Shedded Load Reduction</div>
+                    <div id="sheddedLoad" class="metric-value text-red">0 kW</div>
+                </div>
+            </div>
+            <p id="summaryText" style="margin-top: 20px; font-style: italic; color: #a0aec0;">
+                Add zones to evaluate capacity limits. Click "Run Load Shedding" to calculate optimization strategy.
+            </p>
         </div>
-        <div class="form-group">
-            <label for="capacity">Max Capacity (kW):</label>
-            <input type="number" id="capacity" step="0.1" required>
-        </div>
-        <div class="form-group">
-            <label for="type">Zone Type:</label>
-            <select id="type" onchange="toggleTypeFields()">
-                <option value="residential">Residential</option>
-                <option value="industrial">Industrial</option>
-                <option value="critical">Critical Infrastructure</option>
-            </select>
-        </div>
-        <div class="form-group" id="extraGroup">
-            <label id="extraLabel" for="extraParam">Smart Thermostats Count:</label>
-            <input type="number" id="extraParam" required>
-        </div>
-        <button type="submit">Add Zone</button>
-    </form>
-    <div style="margin-top: 15px;">
-        <button onclick="runOptimize()" style="background-color: #d69e2e;">Run Load Shedding</button>
-        <button onclick="resetGrid()" style="background-color: #e53e3e;">Reset Grid</button>
     </div>
-</div>
 
-<div class="card">
-    <h2>Active Grid Sectors</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Zone Name</th>
-                <th>Current Load (kW)</th>
-                <th>Max Capacity (kW)</th>
-            </tr>
-        </thead>
-        <tbody id="zonesTable"></tbody>
-    </table>
-</div>
+    <div class="card">
+        <h2>Active Grid Sectors</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Zone Name</th>
+                    <th>Current Load (kW)</th>
+                    <th>Max Capacity (kW)</th>
+                </tr>
+            </thead>
+            <tbody id="zonesTable"></tbody>
+        </table>
+    </div>
 
-<script>
-    const API_URL = '/api/grid';
+    <script>
+        const API_URL = '/api/grid';
+        let initialTotalLoad = 0;
 
-    function toggleTypeFields() {
-        const type = document.getElementById('type').value;
-        const label = document.getElementById('extraLabel');
-        if (type === 'residential') label.innerText = 'Smart Thermostats Count:';
-        else if (type === 'industrial') label.innerText = 'Operational Shifts Count:';
-        else if (type === 'critical') label.innerText = 'Backup Generators Count:';
-    }
+        function toggleTypeFields() {
+            const type = document.getElementById('type').value;
+            const label = document.getElementById('extraLabel');
+            if (type === 'residential') label.innerText = 'Smart Thermostats Count:';
+            else if (type === 'industrial') label.innerText = 'Operational Shifts Count:';
+            else if (type === 'critical') label.innerText = 'Backup Generators Count:';
+        }
 
-    async function fetchZones() {
-        const res = await fetch(`${API_URL}/zones`);
-        const zones = await res.json();
-        const tbody = document.getElementById('zonesTable');
-        tbody.innerHTML = zones.map(z => `
-            <tr>
-                <td>${z.zoneName}</td>
-                <td>${z.currentLoadKW}</td>
-                <td>${z.maxCapacityKW}</td>
-            </tr>
-        `).join('');
-    }
+        async function fetchZones() {
+            const res = await fetch(`${API_URL}/zones`);
+            const zones = await res.json();
+            
+            let currentLoadSum = 0;
+            let capacitySum = 0;
 
-    document.getElementById('zoneForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const type = document.getElementById('type').value;
-        const name = encodeURIComponent(document.getElementById('name').value);
-        const load = document.getElementById('load').value;
-        const capacity = document.getElementById('capacity').value;
-        const extra = document.getElementById('extraParam').value;
+            const tbody = document.getElementById('zonesTable');
+            tbody.innerHTML = zones.map(z => {
+                currentLoadSum += z.currentLoadKW;
+                capacitySum += z.maxCapacityKW;
+                return `
+                    <tr>
+                        <td>${z.zoneName}</td>
+                        <td>${z.currentLoadKW} kW</td>
+                        <td>${z.maxCapacityKW} kW</td>
+                    </tr>
+                `;
+            }).join('');
 
-        let endpoint = `${API_URL}/add-${type}?name=${name}&load=${load}&capacity=${capacity}`;
-        
-        if (type === 'residential') endpoint += `&thermostats=${extra}`;
-        else if (type === 'industrial') endpoint += `&shifts=${extra}`;
-        else if (type === 'critical') endpoint += `&generators=${extra}`;
+            document.getElementById('totalCapacity').innerText = `${capacitySum} kW`;
+            
+            // Set initial baseline load if not optimizing
+            if (initialTotalLoad === 0 || currentLoadSum > initialTotalLoad) {
+                initialTotalLoad = currentLoadSum;
+                document.getElementById('beforeLoad').innerText = `${initialTotalLoad} kW`;
+            }
 
-        await fetch(endpoint, { method: 'POST' });
-        document.getElementById('zoneForm').reset();
+            document.getElementById('afterLoad').innerText = `${currentLoadSum} kW`;
+            
+            const shed = initialTotalLoad - currentLoadSum;
+            document.getElementById('sheddedLoad').innerText = `${shed > 0 ? shed : 0} kW`;
+        }
+
+        document.getElementById('zoneForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const type = document.getElementById('type').value;
+            const name = encodeURIComponent(document.getElementById('name').value);
+            const load = document.getElementById('load').value;
+            const capacity = document.getElementById('capacity').value;
+            const extra = document.getElementById('extraParam').value;
+
+            let endpoint = `${API_URL}/add-${type}?name=${name}&load=${load}&capacity=${capacity}`;
+            
+            if (type === 'residential') endpoint += `&thermostats=${extra}`;
+            else if (type === 'industrial') endpoint += `&shifts=${extra}`;
+            else if (type === 'critical') endpoint += `&generators=${extra}`;
+
+            await fetch(endpoint, { method: 'POST' });
+            document.getElementById('zoneForm').reset();
+            fetchZones();
+        });
+
+        async function runOptimize() {
+            const res = await fetch(`${API_URL}/optimize`, { method: 'POST' });
+            const zones = await res.json();
+            
+            await fetchZones();
+
+            const before = parseFloat(document.getElementById('beforeLoad').innerText);
+            const after = parseFloat(document.getElementById('afterLoad').innerText);
+            const shed = before - after;
+
+            document.getElementById('summaryText').innerHTML = shed > 0 
+                ? `<strong>Optimization Result:</strong> Total grid load dropped from <span class="text-red">${before} kW</span> to <span class="text-green">${after} kW</span>, shedding <span class="text-red">${shed} kW</span> to preserve critical stability.`
+                : `<strong>Optimization Result:</strong> Current demand (${after} kW) is within safe grid capacity limits. No load shedding required.`;
+        }
+
+        async function resetGrid() {
+            await fetch(`${API_URL}/reset`, { method: 'POST' });
+            initialTotalLoad = 0;
+            document.getElementById('beforeLoad').innerText = '0 kW';
+            document.getElementById('afterLoad').innerText = '0 kW';
+            document.getElementById('sheddedLoad').innerText = '0 kW';
+            document.getElementById('totalCapacity').innerText = '0 kW';
+            document.getElementById('summaryText').innerText = 'Grid reset successful. Add new zones to begin.';
+            fetchZones();
+        }
+
         fetchZones();
-    });
-
-    async function runOptimize() {
-        await fetch(`${API_URL}/optimize`, { method: 'POST' });
-        fetchZones();
-    }
-
-    async function resetGrid() {
-        await fetch(`${API_URL}/reset`, { method: 'POST' });
-        fetchZones();
-    }
-
-    fetchZones();
-</script>
+    </script>
+</body>
+</html>
