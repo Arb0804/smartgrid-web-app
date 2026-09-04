@@ -8,6 +8,7 @@
 * (https://docs.oracle.com/javase/tutorial/java/landl/subclass.html)
 * (https:// docs.oracle.com/javase/tutorial/java/annotations/predefined.html)
 */
+package com.smartgrid;
 
 public class ElectricalGridZone
 {

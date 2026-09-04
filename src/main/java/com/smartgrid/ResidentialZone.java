@@ -8,6 +8,7 @@
 * (https://docs.oracle.com/javase/tutorial/java/IandI/subclass.html) 
 * (https://docs.oracle.com/javase/tutorial/java/annotations/predefined.html)
 */
+package com.smartgrid;
 
 public class ResidentialZone extends ElectricalGridZone
 {

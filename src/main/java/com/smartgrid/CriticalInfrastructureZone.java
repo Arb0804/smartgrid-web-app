@@ -8,6 +8,7 @@
 * (https://docs.oracle.com/javase/tutorial/java/IandI/subclasses.html)
 * (https://docs.oracle.com/javase/tutorial/java/annotations/predefined.html)
 */
+package com.smartgrid;
 
 public class CriticalInfrastructureZone extends ElectricalGridZone
 {

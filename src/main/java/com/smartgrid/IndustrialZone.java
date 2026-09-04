@@ -8,6 +8,7 @@
 * (https://docs.oracle.com/javase/tutorial/java/IandI/subclasses.html)
 * (https://docs.oracle.com/javase/tutorial/java/java00/annotations.html)
 */
+package com.smartgrid;
 
 public class IndustrialZone extends ElectricalGridZone
 {
