@@ -23,88 +23,106 @@
     <h1>⚡ SmartGrid Load Shedding Optimizer</h1>
 
     <div class="card">
-        <h2>Add Grid Zone</h2>
-        <form id="zoneForm">
-            <div class="form-group">
-                <label for="name">Zone Name:</label>
-                <input type="text" id="name" required>
-            </div>
-            <div class="form-group">
-                <label for="demand">Power Demand (MW):</label>
-                <input type="number" id="demand" step="0.1" required>
-            </div>
-            <div class="form-group">
-                <label for="priority">Priority Level (1-5):</label>
-                <input type="number" id="priority" min="1" max="5" required>
-            </div>
-            <div class="form-group">
-                <label for="type">Zone Type:</label>
-                <select id="type">
-                    <option value="Residential">Residential</option>
-                    <option value="Industrial">Industrial</option>
-                    <option value="CriticalInfrastructure">Critical Infrastructure</option>
-                </select>
-            </div>
-            <button type="submit">Add Zone</button>
-        </form>
+    <h2>Add Grid Zone</h2>
+    <form id="zoneForm">
+        <div class="form-group">
+            <label for="name">Zone Name:</label>
+            <input type="text" id="name" required>
+        </div>
+        <div class="form-group">
+            <label for="load">Current Load (kW):</label>
+            <input type="number" id="load" step="0.1" required>
+        </div>
+        <div class="form-group">
+            <label for="capacity">Max Capacity (kW):</label>
+            <input type="number" id="capacity" step="0.1" required>
+        </div>
+        <div class="form-group">
+            <label for="type">Zone Type:</label>
+            <select id="type" onchange="toggleTypeFields()">
+                <option value="residential">Residential</option>
+                <option value="industrial">Industrial</option>
+                <option value="critical">Critical Infrastructure</option>
+            </select>
+        </div>
+        <div class="form-group" id="extraGroup">
+            <label id="extraLabel" for="extraParam">Smart Thermostats Count:</label>
+            <input type="number" id="extraParam" required>
+        </div>
+        <button type="submit">Add Zone</button>
+    </form>
+    <div style="margin-top: 15px;">
+        <button onclick="runOptimize()" style="background-color: #d69e2e;">Run Load Shedding</button>
+        <button onclick="resetGrid()" style="background-color: #e53e3e;">Reset Grid</button>
     </div>
+</div>
 
-    <div class="card">
-        <h2>Active Grid Sectors</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Demand (MW)</th>
-                    <th>Priority</th>
-                    <th>Type</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody id="zonesTable">
-                <!-- Data populated dynamically -->
-            </tbody>
-        </table>
-    </div>
+<div class="card">
+    <h2>Active Grid Sectors</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Zone Name</th>
+                <th>Current Load (kW)</th>
+                <th>Max Capacity (kW)</th>
+            </tr>
+        </thead>
+        <tbody id="zonesTable"></tbody>
+    </table>
+</div>
 
-    <script>
-        const API_URL = '/api/grid';
+<script>
+    const API_URL = '/api/grid';
 
-        async function fetchZones() {
-            const res = await fetch(`${API_URL}/zones`);
-            const zones = await res.json();
-            const tbody = document.getElementById('zonesTable');
-            tbody.innerHTML = zones.map(z => `
-                <tr>
-                    <td>${z.name || z.zoneName}</td>
-                    <td>${z.powerDemand || z.demand}</td>
-                    <td>${z.priorityLevel || z.priority}</td>
-                    <td>${z.type || z.zoneType || 'Standard'}</td>
-                    <td>${z.isShed ? '🔴 Shed' : '🟢 Active'}</td>
-                </tr>
-            `).join('');
-        }
+    function toggleTypeFields() {
+        const type = document.getElementById('type').value;
+        const label = document.getElementById('extraLabel');
+        if (type === 'residential') label.innerText = 'Smart Thermostats Count:';
+        else if (type === 'industrial') label.innerText = 'Operational Shifts Count:';
+        else if (type === 'critical') label.innerText = 'Backup Generators Count:';
+    }
 
-        document.getElementById('zoneForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const zone = {
-                name: document.getElementById('name').value,
-                powerDemand: parseFloat(document.getElementById('demand').value),
-                priorityLevel: parseInt(document.getElementById('priority').value),
-                zoneType: document.getElementById('type').value
-            };
+    async function fetchZones() {
+        const res = await fetch(`${API_URL}/zones`);
+        const zones = await res.json();
+        const tbody = document.getElementById('zonesTable');
+        tbody.innerHTML = zones.map(z => `
+            <tr>
+                <td>${z.zoneName}</td>
+                <td>${z.currentLoadKW}</td>
+                <td>${z.maxCapacityKW}</td>
+            </tr>
+        `).join('');
+    }
 
-            await fetch(`${API_URL}/zones`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(zone)
-            });
+    document.getElementById('zoneForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const type = document.getElementById('type').value;
+        const name = encodeURIComponent(document.getElementById('name').value);
+        const load = document.getElementById('load').value;
+        const capacity = document.getElementById('capacity').value;
+        const extra = document.getElementById('extraParam').value;
 
-            document.getElementById('zoneForm').reset();
-            fetchZones();
-        });
+        let endpoint = `${API_URL}/add-${type}?name=${name}&load=${load}&capacity=${capacity}`;
+        
+        if (type === 'residential') endpoint += `&thermostats=${extra}`;
+        else if (type === 'industrial') endpoint += `&shifts=${extra}`;
+        else if (type === 'critical') endpoint += `&generators=${extra}`;
 
+        await fetch(endpoint, { method: 'POST' });
+        document.getElementById('zoneForm').reset();
         fetchZones();
-    </script>
-</body>
-</html>
+    });
+
+    async function runOptimize() {
+        await fetch(`${API_URL}/optimize`, { method: 'POST' });
+        fetchZones();
+    }
+
+    async function resetGrid() {
+        await fetch(`${API_URL}/reset`, { method: 'POST' });
+        fetchZones();
+    }
+
+    fetchZones();
+</script>
